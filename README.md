@@ -1,56 +1,170 @@
-# _printf 
-<br />
-This is a printf function with the functionalities of printing characters (c), strings (s), % (%), octals(o), hexidecimals (x and X). We also a custom formatter binary (b).
-<br />
-print3.c
-<br />
-This is our file that contains our printf function. Also included is an error function that can return an error when called upon.
-<br />
-Formatter files<br />
-<br />
-We created a file for each formatter. In each file, it should contain a make_formatter function that creates a string to fill in the buffer. Also included in each formatter file is a conversion check to see if we need to account for precision, width, or flag. If necessary, we also included a helper function to convert a number to a string. 
-<br />
-  Foramtter files:
-    binary.c <br />
-    chars.c <br />
-    decimal.c <br />
-    hex.c <br />
-    heX.c <br />
-    octal.c <br />
-    strings.c <br />
-    unsigned.c <br />
- <br /> 
-Helper files
-<br />
-We created helper files to put universal helper functions such at idigit, no_conversion, reverse_array. These functions are used multiple times throughout the files.
-<br />
-  Helper files:<br />
-    unihelper.c<br />
-      is_digit<br />
-      no_conversion<br />
-      strlen<br />
-      isdflag<br />
-    unihelper2.c<br />
-      give_precision.c<br />
-      give_width.c<br />
-      get_result.c<br />
-<br />
-Example:
-<br />
-int main(void)<br />
-{<br />
-  _printf("This is a char: [%c]\n", 'c')<br />
-  _printf("This is a %s\n", "string.");<br />
-  _printf("Unsigned octal:[%o]\n", ui);<br />
-  _printf("Unsigned hexadecimal:[%x, %X]\n", ui, ui);<br />
-  _printf("Unsigned:[%u]\n", ui);<br />
-  _printf("Binary is [%b]\n", 98);<br />
-  return (0)<br />
-}<br />
+#Exploring the C programming language - Rewrite Printf
+## Description
+This project creates our version, _printf, of the C library function printf. Printf formats data and converts it to a character string and outputs to `stdout`. 
 
-This is a char: [c]<br />
-This is a string.<br />
-Unsigned octal:[20000001777]<br />
-Unsigned hexadecimal:[800003ff, 800003FF]<br />
-Unsigned:[2147484671]<br />
-Binary is [1100010]<br />
+##How To Use
+```
+$ git clone git@github.com:j-tyler/printf.git
+$ gcc -Wall -Werror -Wextra -pedantic *.c
+```
+Compile everything within the directory and use _printf in your code.
+
+###Declaration
+int _printf(const char *format, ...)
+
+###Example
+```
+_printf("My %s is %d", "favorite number", 8);
+$ My favorite number is 8
+```
+
+##Completed Features
+
+###Format tags
+format tags must follow the format of [flags][width][.precision][length]specifier
+
+| **specifier** | **output**                            |
+|---------------|---------------------------------------|
+| c             | characters                            |
+| s		| string of characters                  |
+| i or d        | signed decimal int                    |
+| u             | unsigned decimal int                  |
+| o             | signed octal                          |
+| x             | unsigned hexadecimal int              |
+| X             | unsigned hexadecimal int (Upper Case) |
+| b             | Binary                                |
+| p             | pointer address                       |
+
+
+<table class="tg">
+  <col width="45%">
+  <col width="65%">
+  <tr>
+    <td><b>Flags</b></td>
+    <td><b>Effected Specifers</b></td>
+    <td><b>Description and Examples</b> </td>
+  </tr>
+  <tr>
+    <td>-</td>
+    <td>d, i, u, o, x, X, b, c, s</td>
+    <td>
+	Left justify</br>
+	<code>_printf("A%3dlast", 5);</code></br>
+	<code>_printf("A%-3dlast", 5);</code></br>
+	output</br>
+	<code>$ A  5last</code></br>
+        <code>$ A5  last</code></br>
+    </td>
+  </tr>
+  <tr>
+    <td>+</td>
+    <td>d, i</td>
+    <td>
+      Forces proceed to with a sign even if positive</br>
+      <code>_printf("A%dlast", 5);</code></br>
+      <code>_printf("A%+dlast", 5);</code></br>
+    output</br>
+      <code>$ A5last</code></br>
+      <code>$ A+5last</code></br>
+    </td>
+  </tr>
+  <tr>
+    <td>(space)</td>
+    <td>d, i</td>
+    <td>
+    if no sign is given, proceed with space
+      <code>_printf("A%dlast", 5);</code></br>
+      <code>_printf("A% dlast", 5);</code></br>
+    output
+      <code>$ A5last</code></br>
+      <code>$ A 5last</code></br>
+    </td>
+  </tr>
+  <tr>
+    <td>#</td>
+    <td>o, x, X </td>
+    <td>
+    Used with o, x or X specifiers the value is preceded with 0, 0x,or 0X respectively for values different than zero.
+      <code>_printf("%o, 1");</code></br>
+      <code>_printf("%#o, 1");</code></br>
+    output
+      <code>$1</code></br>
+      <code>$01</code></br>
+    </td>
+  </tr>
+  <tr>
+    <td>0</td>
+    <td>d, i, u, o, x</td>
+    <td>
+     left pad with spaces with 0
+      <code>_printf("A%3dlast", 5);</code></br>
+      <code>_printf("A%03dlast", 5);</code></br>
+    output
+      <code>$ A  5last</code></br>
+      <code>$ A005last</code></br>
+    </td>
+  </tr>
+</table>
+
+
+<table class="tg">
+  <col width="45%">
+  <col width="65%">
+  <tr>
+    <td><b>width</b></td>
+    <td><b>Effected Specifers</b></td>
+    <td><b>Description and Examples</b> </td>
+  </tr>
+  <tr>
+    <td>-</td>
+    <td>d, i, u, o, x, X, b, c, s</td>
+    <td>
+	minimum number to be printed</br>
+	<code>_printf("A%dlast", 5);</code></br>
+	<code>_printf("A%3dlast", 5);</code></br>
+	output</br>
+	<code>$ A5last</code></br>
+        <code>$ A  5last</code></br>
+    </td>
+  </tr>
+</table>
+
+<table class="tg">
+  <col width="45%">
+  <col width="65%">
+  <tr>
+    <td><b>.percision</b></td>
+    <td><b>Effected Specifers</b></td>
+    <td><b>Description and Examples</b> </td>
+  </tr>
+  <tr>
+    <td>-</td>
+    <td>d, i, u, o, x, X, s</td>
+    <td>
+	For integer specifiers (d, i, o, u, x, X) − precision specifies the minimum number of digits to be written. If the value to be written is shorter than this number, the result is padded with leading zeros.</br>
+	<code>_printf("A%dlast", 5);</code></br>
+	<code>_printf("A%.3dlast", 5);</code></br>
+	output</br>
+	<code>$ A5last</code></br>
+        <code>$ A005last</code></br>
+	</br>
+	For s − this is the maximum number of characters to be printed.</br>
+	<code>_printf("A%s", "Holberton");</code></br>
+	<code>_printf("A%.3s", "Holberton");</code></br>
+	output</br>
+	<code>$ Holberton</code></br>
+        <code>$ Hol</code></br>
+    </td>
+  </tr>
+</table>
+##Future features
+format tags -, +, (space), #, and width for the pointer flag
+implement the length format tags
+
+##Contributors
+*Justin Marsh* - [Github](https://github.com/j-tyler) || [Twitter](https://twitter.com/dogonthecircuit) || [email](justin.marsh@holbertonschool.com)
+
+*Richard Sim* - [Github](https://github.com/rdsim8589) || [Twitter](https://twitter.com/richard_d_sim) || [email](richard.sim@holbertonschool.com)
+
+##Want to be contributor?
+reach out to any of the Contributors

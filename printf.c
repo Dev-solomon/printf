@@ -1,66 +1,120 @@
 #include "main.h"
-
-void print_buffer(char buffer[], int *buff_ind);
-
 /**
- * _printf - Printf function
- * @format: format.
- * Return: Printed chars.
+ * _printf - Recreate stdio.h's printf
+ * @format: Formatted string to write to stdout
+ *
+ * Return: Number of chars written
  */
 int _printf(const char *format, ...)
 {
-	int i, printed = 0, printed_chars = 0;
-	int flags, width, precision, size, buff_ind = 0;
-	va_list list;
-	char buffer[BUFF_SIZE];
+	/* Create buffer structure b_r and initalize */
+	buffer b_r;
 
-	if (format == NULL)
-		return (-1);
+	_init_buffer(&b_r, format);
+	va_start(b_r.ap, format);
 
-	va_start(list, format);
-
-	for (i = 0; format && format[i] != '\0'; i++)
+	/* Main loop to create buffer from format string */
+	while (b_r.format[b_r.fp] != '\0')
 	{
-		if (format[i] != '%')
-		{
-			buffer[buff_ind++] = format[i];
-			if (buff_ind == BUFF_SIZE)
-				print_buffer(buffer, &buff_ind);
-			/* write(1, &format[i], 1);*/
-			printed_chars++;
-		}
-		else
-		{
-			print_buffer(buffer, &buff_ind);
-			flags = get_flags(format, &i);
-			width = get_width(format, &i, list);
-			precision = get_precision(format, &i, list);
-			size = get_size(format, &i);
-			++i;
-			printed = handle_print(format, &i, list, buffer,
-				flags, width, precision, size);
-			if (printed == -1)
-				return (-1);
-			printed_chars += printed;
-		}
+		_copy(&b_r);
+		if (b_r.format[b_r.fp] != '\0')
+			_parse(&b_r);
 	}
 
-	print_buffer(buffer, &buff_ind);
+	/* Write remaining buffer to stdout */
+	if (b_r.bp > 0)
+		write(1, b_r.buf, b_r.bp);
+	b_r.printed += b_r.bp;
 
-	va_end(list);
-
-	return (printed_chars);
+	va_end(b_r.ap);
+	free(b_r.buf);
+	free(b_r.tmpbuf);
+	return (b_r.printed);
 }
-
 /**
- * print_buffer - Prints the contents of the buffer if it exist
- * @buffer: Array of chars
- * @buff_ind: Index at which to add next char, represents the length.
+ * _copy - directly copy from format to buffer
+ * @b_r: the buffer structure
  */
-void print_buffer(char buffer[], int *buff_ind)
+void _copy(buffer *b_r)
 {
-	if (*buff_ind > 0)
-		write(1, &buffer[0], *buff_ind);
+	while (b_r->format[b_r->fp] != '%' && b_r->format[b_r->fp] != '\0')
+		_write(b_r, b_r->format[b_r->fp++]);
 
-	*buff_ind = 0;
+}
+/**
+ * _parse - take string from % and parse tags into correct string for buffer
+ * @b_r: the buffer structure
+ */
+void _parse(buffer *b_r)
+{
+	int i;
+	tags t;
+	parse_table table[] = {
+	{'d', 5, _spec_d}, {'i', 5, _spec_d}, {'c', 5, _spec_c},
+	{'s', 5, _spec_s}, {'u', 5, _spec_u}, {'o', 5, _spec_o},
+	{'x', 5, _spec_x}, {'X', 5, _spec_X}, {'b', 5, _spec_b},
+	{'S', 5, _spec_S}, {'p', 5, _spec_p}, {'R', 5, _spec_R},
+	{'r', 5, _spec_r}, {'%', 5, _spec_pct},
+	/*no specifier found */ {'\0', 5, _spec_nil},
+
+	{'h', 4, _error_}, {'l', 4, _error_},
+	{'.', 3, _error_},
+	{'1', 2, _error_}, {'2', 2, _error_}, {'3', 2, _error_},
+	{'4', 2, _error_}, {'5', 2, _error_}, {'6', 2, _error_},
+	{'7', 2, _error_}, {'8', 2, _error_}, {'9', 2, _error_},
+	{'-', 1, _error_}, {'+', 1, _error_}, {' ', 1, _error_},
+	{'#', 1, _error_}, {'0', 1, _error_},
+	/* end of Table */ {'\0', -1, _error_}
+	};
+
+	/*We only parse at %!*/
+	if (b_r->format[b_r->fp] != '%')
+		write(1, "Error: Parsing when not at '%'\n", 31);
+	b_r->tp = 0;
+	b_r->tmpbuf[b_r->tp++] = '%';
+	b_r->fp++;
+
+	_init_tag(&t);
+	_parse_tag(b_r, &t, table);
+
+	/* Call the specifier function matching the specifier found */
+	i = 0;
+	while (table[i].level == 5)
+	{
+		if (table[i].c == t.spec)
+			table[i].spec_func(b_r, &t);
+		i++;
+	}
+	i = 0;
+}
+/**
+ * _parse_tag - Build out the tags struct with tags found
+ * @b_r: the buffer structure
+ * @table: Parsing table to read the '%___' from format
+ * @t: tags to send to our specifier function
+ */
+void _parse_tag(buffer *b_r, tags *t, parse_table *table)
+{
+	int depth, i, j;
+
+	depth = i = j = 0;
+	while (table[i].level > depth || table[i].level == 1)
+	{
+		if (table[i].c == b_r->format[b_r->fp])
+		{
+			depth = table[i].level;
+			if (depth == 5)
+				_found_spec(b_r, t, table, i);
+			else if (depth == 4)
+				_found_length(b_r, t, table, i);
+			else if (depth == 3)
+				_found_prec(b_r, t, table, i);
+			else if (depth == 2)
+				_found_width(b_r, t);
+			else if (depth == 1)
+				_found_flag(b_r, t, table, i);
+			i = -1;
+		}
+		i++;
+	}
 }

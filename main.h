@@ -1,147 +1,119 @@
-#ifndef HEADER
-#define HEADER
+#ifndef MAIN_H
+#define MAIN_H
+#include <stdlib.h>
+#include <unistd.h>
 #include <stdarg.h>
-
-/*macro*/
-#define BUF_LENGTH 1024
-
-
-
-/*structs*/
-
+#include <stdio.h>
 /**
- * struct buf_type - contains buffer and count of chars so far
- * @count_c: number of chars put in buffer so far
- * @buffer: buffer
- * @buf_index: where to start inserting new string/char
+ * struct buffer - buffer structure for our implimentation of printf
+ * @buf: buffer to write characters
+ * @tmpbuf: tmp buffer to write to before putting in buffer
+ * @format: the string passed to our printf
+ * @ap: the variadic address point
+ * @bp: the current point in the buffer
+ * @tp: the current point in the tmp buffer
+ * @fp: the current point in the format
+ * @printed: the number of chars printed from _write
  */
-typedef struct buf_type
+typedef struct buffer
 {
-	char buffer[BUF_LENGTH];
-	int count_c;
-	int buf_index;
-} buf_type;
-
+	char *buf;
+	char *tmpbuf;
+	const char *format;
+	va_list ap;
+	int bp;
+	int tp;
+	int fp;
+	unsigned int printed;
+} buffer;
 /**
- * struct valid - check if formatting is valid
- * @type: type
- * @conversion_check:function to check if a conversion string is valid
+ * struct tags - Format tags after %
+ * @spec: the specifier
+ * @length: the length
+ * @prec: the precision
+ * @width: the width
+ * @flags: the flags
  */
-typedef struct valid
+typedef struct tags
 {
-	char type;
-	int (*conversion_check)(char *);
-} valid;
-
+	char spec;
+	char length;
+	int prec;
+	int width;
+	char flags[6];
+} tags;
 /**
- * struct m_string -  valid format
- * @type: type of format
- * @make_s:make the string, fill the buffer
+ * struct parse_table - Table used for parsing the %s
+ * @c: character found
+ * @level: which level from 5 (specification) to 1 (flags)
+ * @spec_func: function to put the matched specification into the buffer
  */
-typedef struct m_string
+typedef struct parse_table
 {
-	char type;
-	void (*make_s)(char *, va_list, buf_type *buf);
-} m_string;
-
-
-/*functions prototypes*/
-
-/* in print.c*/
+	char c;
+	int level;
+	void (*spec_func)();
+} parse_table;
+/* printf functions */
+void _copy(buffer *);
 int _printf(const char *format, ...);
-void error_format(const char *format);
-int no_conversion(char);
-
-/*in buffer_functions1.c*/
-void _flush(char *buffer);
-buf_type *fill_buffer(buf_type *buf, const char *s, int s_length);
-void print_buffer(char *buffer, int length);
-buf_type *fill_char_buffer(buf_type *buf, char c);
-
-/*in format-handlers.c*/
-void fill_format(const char *format);
-char *grab_format(const char *s);
-
-/* get_validity_func.c */
-int (*get_validity_func(char c))(char *s);
-
-/*in unihelper.c*/
-int no_conversion(char c);
-int _is_digit(char c);
-char *_strncpy(char *dest, const char *src, int n);
-int _strlen(const char *);
-int _isdflag(char *c);
-
-/* in unihelper2.c */
-int give_precision(char *, char);
-int give_width(char *, char);
-char *get_result(char *, char *, int p, int w, int slen, int flen, int mlen);
-
-/*in numbershelper.c */
-int _nlen(unsigned int);
-void reverse_array(char *, int);
-char *base_conv(unsigned int, int, char *);
-
-/*in unihelper3.c*/
-void make_no_conversion(char *conv, buf_type *buf);
-
-/*in get_mstring_func.c */
-void (*get_mstring_func(char))(char *, va_list vl, buf_type *buf);
-
-/*in chars.c*/
-int conversion_char(char *s);
-void make_char(char *s, va_list vl, buf_type *buf);
-
-/*in strings.c*/
-int conversion_string(char *s);
-void make_string(char *s, va_list vl, buf_type *buf);
-
-/*in percent.c*/
-int conversion_percent(char *s);
-void make_percent(char *s, va_list vl, buf_type *buf);
-
-/* decimal.c */
-int conversion_di(char *s);
-void make_decimal(char *s, va_list vl, buf_type *buf);
-
-/*unsigned.c */
-int conversion_u(char *s);
-void make_unsigned(char *s, va_list vl, buf_type *buf);
-char *_utoa(unsigned int);
-
-/*octal.c */
-int conversion_o(char *s);
-void make_octal(char *s, va_list vl, buf_type *buf);
-char *octorbi(unsigned int, int);
-
-/*binary.c*/
-int conversion_b(char *s);
-void make_binary(char *s, va_list vl, buf_type *buf);
-
-/* hex. */
-int conversion_h(char *s);
-void make_hex(char *s, va_list vl, buf_type *buf);
-char *hex(unsigned int);
-void reverse_array(char *a, int n);
-
-/* heX */
-void make_heX(char *s, va_list vl, buf_type *buf);
-char *heX(unsigned int);
-
-/*in bigS.c*/
-void _hexa(char n, char *nb);
-void convert_S(char *, buf_type *);
-int conversion_S(char *s);
-void make_S(char *s, va_list vl, buf_type *buf);
-
-/* reverse.c */
-void rev_string(char *s);
-int conversion_r(char *s);
-void make_rev(char *s, va_list vl, buf_type *buf);
-char *_strdup(char *str);
-
-/* rot13.c */
-int conversion_R(char *s);
-void make_rot13(char *s, va_list vl, buf_type *buf);
-char *rot13(char *s);
+void _parse(buffer *b_r);
+void _init_tag(tags *t);
+void _init_buffer(buffer *b_r, const char *format);
+void _spec_c(buffer *b_r, tags *t);
+void _spec_s(buffer *b_r, tags *t);
+void _spec_nil(buffer *b_r);
+void _spec_pct(buffer *b_r);
+void _spec_p(buffer *b_r, tags *t);
+void _spec_r(buffer *b_r, tags *t);
+void _spec_S(buffer *b_r, tags *t);
+void _spec_o(buffer *b_r, tags *t);
+void _spec_u(buffer *b_r, tags *t);
+void _spec_x(buffer *b_r, tags *t);
+void _spec_X(buffer *b_r, tags *t);
+void _spec_b(buffer *b_r, tags *t);
+void _spec_d(buffer *b_r, tags *t);
+void _spec_R(buffer *b_r, tags *t);
+void _error_(void);
+int __atoi(const char *s, int n);
+/* _write_to_buffer functions */
+void _write(buffer *b_r, char c);
+void _write_str(buffer *b_r, char *s);
+void _write_tmpbuf(buffer *b_r);
+void _parse_tag(buffer *b_r, tags *t, parse_table *table);
+int str_len(char *str);
+void _revstr(char *s);
+char *_str_whelp(tags *t, char *hold, int hold_len);
+char *_to_hex_unreadable(char *hold);
+void _to_rot13(char *s);
+/* to string functions */
+char *_int_to_str(long int n);
+char *_int_to_hexstr(long int n);
+char *_int_to_caphexstr(long int n);
+char *_int_to_octstr(long int n);
+char *_int_to_binstr(long int n);
+/* unsigned to string functions */
+char *_uint_to_str(unsigned long int n);
+char *_uint_to_hexstr(unsigned long int n);
+char *_uint_to_caphexstr(unsigned long int n);
+char *_uint_to_octstr(unsigned long int n);
+char *_uint_to_binstr(unsigned long int n);
+/* printf_flag_helper functions */
+int _isFlagMinus(tags *t);
+int _isFlagPlus(tags *t);
+int _isFlagSpace(tags *t);
+int _isFlagHashtag(tags *t);
+int _isFlagZero(tags *t);
+/* parse helper functions */
+void _found_spec(buffer *b_r, tags *t, parse_table *table, int i);
+void _found_length(buffer *b_r, tags *t, parse_table *table, int i);
+void _found_prec(buffer *b_r, tags *t, parse_table *table, int i);
+void _found_width(buffer *b_r, tags *t);
+void _found_flag(buffer *b_r, tags *t, parse_table *table, int i);
+/*spec num helper function*/
+void _spec_num_help(buffer *b_r, tags *t, char *num_str, int minus);
+int num_len(int n);
+void get_sign(tags *t, int minus, char *front);
+char *check_prec(char *tmp_str, char *num_str, tags *t, int s_len);
+void _out_of_time(char *buf_str, char *tmp_str, char *front, tags *t);
 #endif
